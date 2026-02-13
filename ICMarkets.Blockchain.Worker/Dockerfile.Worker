@@ -1,0 +1,52 @@
+# ========================================
+# Stage 1: Base Runtime Image
+# ========================================
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
+WORKDIR /app
+
+USER $APP_UID
+
+# ========================================
+# Stage 2: Build Stage
+# ========================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files for dependency restoration
+COPY ["ICMarkets.Blockchain.Worker/ICMarkets.Blockchain.Worker.csproj", "ICMarkets.Blockchain.Worker/"]
+COPY ["ICMarkets.Blockchain.Application/ICMarkets.Blockchain.Application.csproj", "ICMarkets.Blockchain.Application/"]
+COPY ["ICMarkets.Blockchain.Infrastructure/ICMarkets.Blockchain.Infrastructure.csproj", "ICMarkets.Blockchain.Infrastructure/"]
+COPY ["ICMarkets.Blockchain.Domain/ICMarkets.Blockchain.Domain.csproj", "ICMarkets.Blockchain.Domain/"]
+
+# Restore dependencies
+RUN dotnet restore "ICMarkets.Blockchain.Worker/ICMarkets.Blockchain.Worker.csproj"
+
+# Copy all source code
+COPY . .
+
+# Build the worker project
+WORKDIR "/src/ICMarkets.Blockchain.Worker"
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet build "ICMarkets.Blockchain.Worker.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# ========================================
+# Stage 3: Publish Stage
+# ========================================
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "ICMarkets.Blockchain.Worker.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    /p:UseAppHost=false
+
+# ========================================
+# Stage 4: Final Runtime Image
+# ========================================
+FROM base AS final
+WORKDIR /app
+
+# Copy published application
+COPY --from=publish /app/publish .
+
+# Entry point (no ports exposed - background service)
+ENTRYPOINT ["dotnet", "ICMarkets.Blockchain.Worker.dll"]

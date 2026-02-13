@@ -1,0 +1,80 @@
+services:
+  gateway:
+    image: icmarkets-blockchain-gateway:dev
+    container_name: blockchain-gateway
+    build:
+      context: .
+      dockerfile: ICMarkets.Blockchain.Gateway/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    volumes:
+      - ./data/dev/gateway/logs:/app/logs
+    depends_on:
+      - api-1
+      - api-2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - blockchain-network
+
+  api-1:
+    image: icmarkets-blockchain:dev
+    container_name: blockchain-api-1
+    build:
+      context: .
+      dockerfile: ICMarkets.Blockchain.API/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/blockchain.sqlite;Mode=ReadWriteCreate;Cache=Shared
+    volumes:
+      - ./data/dev/data:/app/data
+      - ./data/dev/api-1/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - blockchain-network
+
+  api-2:
+    image: icmarkets-blockchain:dev
+    container_name: blockchain-api-2
+    build:
+      context: .
+      dockerfile: ICMarkets.Blockchain.API/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/blockchain.sqlite;Mode=ReadWriteCreate;Cache=Shared
+    volumes:
+      - ./data/dev/data:/app/data
+      - ./data/dev/api-2/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - blockchain-network
+
+networks:
+  blockchain-network:
+    driver: bridge

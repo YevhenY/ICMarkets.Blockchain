@@ -1,0 +1,24 @@
+services:
+  blockchain-worker:
+    image: icmarkets-blockchain-worker:prod
+    container_name: blockchain-worker-prod
+    build:
+      context: .
+      dockerfile: ICMarkets.Blockchain.Worker/Dockerfile.Worker
+      args:
+        BUILD_CONFIGURATION: Release
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/blockchain.sqlite
+      # Override Serilog file path for Docker
+      - Serilog__WriteTo__1__Args__path=/app/logs/worker-prod-.txt
+    volumes:
+      - ./data/prod/data:/app/data
+      - ./data/prod/worker/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - blockchain-network
+
+networks:
+  blockchain-network:
+    driver: bridge

@@ -1,0 +1,23 @@
+services:
+  blockchain-api:
+    image: icmarkets-blockchain:dev
+    build:
+      context: .
+      dockerfile: ICMarkets.Blockchain.API/Dockerfile
+    container_name: blockchain-api-dev
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/blockchain.sqlite
+    volumes:
+      - ./data/dev/data:/app/data
+      - ./data/dev/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
